@@ -1,0 +1,14 @@
+Ticket Aging Colors (MailboxAutoDistributor) — FreeScout Module
+Copyright (C) 2026 AdamCoffeeOverflow
+
+License: AGPL-3.0-only
+
+This module is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Network use (AGPL §13):
+If you run this module as part of a network service (e.g., a FreeScout instance accessible over HTTP),
+you must make the corresponding code of the version running on the server available to users who
+interact with it over the network, as required by the license.
+
+Build date: 2026-02-14
