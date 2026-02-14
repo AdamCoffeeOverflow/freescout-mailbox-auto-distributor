@@ -2,8 +2,8 @@
   "name": "Mailbox Auto-Distributor",
   "alias": "mailboxautodistributor",
   "description": "Automatically assigns new mailbox conversations to a selected agent pool using round-robin or least-open distribution.",
-  "version": "1.0.0",
-  "detailsUrl": "https://github.com/AdamCoffeeOverflow/freescout-mail-auto-distributor",
+  "version": "1.0.1",
+  "detailsUrl": "https://github.com/AdamCoffeeOverflow/freescout-mailbox-auto-distributor",
   "author": "AdamCoffeeOverflow",
   "authorUrl": "https://github.com/AdamCoffeeOverflow",
   "img": "/modules/mailboxautodistributor/img/icon.png",
@@ -13,6 +13,6 @@
     "Modules\\MailboxAutoDistributor\\Providers\\MailboxAutoDistributorServiceProvider"
   ],
   "requiredModules": {},
-  "latestVersionUrl": "https://raw.githubusercontent.com/AdamCoffeeOverflow/freescout-mail-auto-distributor/main/version.txt",
-  "latestVersionZipUrl": "https://github.com/AdamCoffeeOverflow/freescout-mail-auto-distributor/releases/latest/download/MailboxAutoDistributor.zip"
+  "latestVersionUrl": "https://raw.githubusercontent.com/AdamCoffeeOverflow/freescout-mailbox-auto-distributor/main/version.txt",
+  "latestVersionZipUrl": "https://github.com/AdamCoffeeOverflow/freescout-mailbox-auto-distributor/releases/latest/download/MailboxAutoDistributor.zip"
 }

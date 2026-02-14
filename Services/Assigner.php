@@ -3,6 +3,7 @@
 namespace Modules\MailboxAutoDistributor\Services;
 
 use App\Conversation;
+use App\Folder;
 use App\Mailbox;
 use App\User;
 use Illuminate\Support\Facades\DB;
@@ -82,8 +83,25 @@ class Assigner
                 return;
             }
 
-            $conversationFresh->user_id = (int)$selectedUserId;
+            // Assign using FreeScout helper so folder_id is updated correctly.
+            $oldFolderId = (int)$conversationFresh->folder_id;
+            $conversationFresh->setUser((int)$selectedUserId);
             $conversationFresh->save();
+
+            // Update folder counters so sidebar badge reflects the move immediately.
+            $newFolderId = (int)$conversationFresh->folder_id;
+            if ($oldFolderId && $oldFolderId !== $newFolderId) {
+                $oldFolder = Folder::find($oldFolderId);
+                if ($oldFolder) {
+                    $oldFolder->updateCounters();
+                }
+            }
+            if ($newFolderId) {
+                $newFolder = Folder::find($newFolderId);
+                if ($newFolder) {
+                    $newFolder->updateCounters();
+                }
+            }
 
             // Persist pointer.
             $meta['last_assigned_user_id'] = (int)$selectedUserId;
