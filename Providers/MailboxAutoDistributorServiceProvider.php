@@ -18,10 +18,15 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
 
+        // Migrations.
+        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+
         // Page-specific JS (CSP-safe external script).
         \Eventy::addFilter('javascripts', function ($javascripts) {
             try {
-                if (\Route::currentRouteName() === 'mailboxes.update') {
+                // Mailbox settings screen (GET edit + POST update). FreeScout route names may vary by version,
+                // so we use path matching for maximum compatibility.
+                if (\Request::is('mailboxes/*')) {
                     $javascripts[] = \Module::getPublicPath(MAILBOXAUTODISTRIBUTOR_MODULE) . '/js/mad.js';
                 }
             } catch (\Throwable $e) {
@@ -49,6 +54,16 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $this->app->singleton(\Modules\MailboxAutoDistributor\Services\Assigner::class, function () {
             return new \Modules\MailboxAutoDistributor\Services\Assigner();
         });
+
+        $this->app->singleton(\Modules\MailboxAutoDistributor\Services\PendingProcessor::class, function ($app) {
+            return new \Modules\MailboxAutoDistributor\Services\PendingProcessor($app->make(\Modules\MailboxAutoDistributor\Services\Assigner::class));
+        });
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\MailboxAutoDistributor\Console\Commands\ProcessPendingAssignments::class,
+            ]);
+        }
     }
 
     public function mailboxSettingsSection($mailbox)
@@ -105,6 +120,21 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $mode = $request->input('mad_mode', 'round_robin');
         $users = $request->input('mad_users', []);
 
+        $deferEnabled = (bool)$request->input('mad_defer_enabled');
+        $deferMinutes = (int)$request->input('mad_defer_minutes', 5);
+        $deferMinutes = max(1, min(60, $deferMinutes));
+        $webFallback = (bool)$request->input('mad_web_fallback');
+
+        $stickyEnabled = (bool)$request->input('mad_sticky_enabled');
+        $stickyDays = (int)$request->input('mad_sticky_days', 60);
+        $stickyDays = max(1, min(365, $stickyDays));
+
+        $excludeTags = (string)$request->input('mad_exclude_tags', '');
+
+        $fallbackUserId = (int)$request->input('mad_fallback_user_id', 0);
+
+        $auditEnabled = (bool)$request->input('mad_audit_enabled');
+
         if (!is_array($users)) {
             $users = [];
         }
@@ -124,6 +154,19 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $meta['mode'] = in_array($mode, ['round_robin', 'least_open'], true) ? $mode : 'round_robin';
         $meta['users'] = $users;
 
+        $meta['defer_enabled'] = $deferEnabled ? 1 : 0;
+        $meta['defer_minutes'] = $deferMinutes;
+        $meta['web_fallback'] = $webFallback ? 1 : 0;
+
+        $meta['sticky_enabled'] = $stickyEnabled ? 1 : 0;
+        $meta['sticky_days'] = $stickyDays;
+
+        $meta['exclude_tags'] = trim($excludeTags);
+
+        $meta['fallback_user_id'] = $fallbackUserId > 0 ? $fallbackUserId : 0;
+
+        $meta['audit_enabled'] = $auditEnabled ? 1 : 0;
+
         // If user list changed and last_assigned is no longer present, reset pointer.
         if (!empty($meta['last_assigned_user_id']) && $users && !in_array((int)$meta['last_assigned_user_id'], $users, true)) {
             $meta['last_assigned_user_id'] = 0;
@@ -134,6 +177,24 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
 
     public function onConversationCreatedByCustomer($conversation, $thread, $customer)
     {
+        // Optional "web fallback" processing for deferred assignments (for installs without cron).
+        try {
+            $mailbox = \App\Mailbox::find((int)$conversation->mailbox_id);
+            if ($mailbox) {
+                $meta = $mailbox->meta[MAILBOXAUTODISTRIBUTOR_MODULE] ?? [];
+                if (is_array($meta) && !empty($meta['defer_enabled']) && !empty($meta['web_fallback'])) {
+                    $key = 'mad_web_fallback_process';
+                    if (\Cache::add($key, 1, 60)) {
+                        /** @var \Modules\MailboxAutoDistributor\Services\PendingProcessor $processor */
+                        $processor = app(\Modules\MailboxAutoDistributor\Services\PendingProcessor::class);
+                        $processor->processDue(20);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore.
+        }
+
         /** @var \Modules\MailboxAutoDistributor\Services\Assigner $assigner */
         $assigner = app(\Modules\MailboxAutoDistributor\Services\Assigner::class);
         $assigner->assignIfEnabled($conversation);

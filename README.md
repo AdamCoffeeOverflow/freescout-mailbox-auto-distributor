@@ -49,3 +49,30 @@ If a user cannot update mailbox settings, they will not see or be able to change
 ## License
 
 AGPL-3.0-or-later. See `LICENSE`.
+
+
+## Workflows-first (deferred assignment)
+
+If you use the FreeScout Workflows module (or any automation that assigns tickets), enable **Workflows-first (defer assignment)** in the mailbox settings.
+
+How it works:
+- On new customer ticket, Auto-Distributor enqueues a pending assignment and waits.
+- When processed, it assigns **only if the conversation is still unassigned**.
+
+### Cron (recommended)
+
+Add this to your server cron (every minute is typical):
+
+```bash
+php artisan mailboxautodistributor:process
+```
+
+If you cannot run cron, enable **Web fallback (no-cron mode)**. This is less reliable and processes pending assignments only when new customer tickets arrive.
+
+## Migrations
+
+This module includes database tables for deferred assignments and audit logs. After installing/updating, run:
+
+```bash
+php artisan migrate
+```
