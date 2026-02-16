@@ -43,6 +43,7 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         \Eventy::addAction('mailbox.settings_before_save', [$this, 'mailboxSettingsBeforeSave'], 20, 2);
 
         // Auto-assign on incoming customer conversation.
+        // Some FreeScout versions pass only 2 args to this action.
         \Eventy::addAction('conversation.created_by_customer', [$this, 'onConversationCreatedByCustomer'], 20, 3);
     }
 
@@ -175,7 +176,11 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $mailbox->setMetaParam(MAILBOXAUTODISTRIBUTOR_MODULE, $meta);
     }
 
-    public function onConversationCreatedByCustomer($conversation, $thread, $customer)
+    /**
+     * Event handler for new inbound customer conversations.
+     * Some FreeScout versions pass only ($conversation, $thread).
+     */
+    public function onConversationCreatedByCustomer($conversation, $thread = null, $customer = null)
     {
         // Optional "web fallback" processing for deferred assignments (for installs without cron).
         try {
