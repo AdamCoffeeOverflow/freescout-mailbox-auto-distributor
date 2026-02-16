@@ -12,6 +12,15 @@ use Modules\MailboxAutoDistributor\Models\PendingAssignment;
 
 class Assigner
 {
+    public function __construct()
+    {
+        // Make the module alias constant available even if service is resolved
+        // in unusual boot orders (e.g. artisan contexts).
+        if (!defined('MAILBOXAUTODISTRIBUTOR_MODULE')) {
+            define('MAILBOXAUTODISTRIBUTOR_MODULE', 'mailboxautodistributor');
+        }
+    }
+
     /**
      * Entry point from events: respects "defer/workflows-first" mode.
      */
