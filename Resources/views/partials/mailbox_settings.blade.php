@@ -103,7 +103,7 @@
                 <span>{{ __('Override mailbox default assignee when module is enabled') }}</span>
             </label>
         </div>
-        <p class="block-help margin-bottom-0">{{ __('This does not override manual assignments made by agents. For Workflows, use Workflows-first (defer) above.') }}</p>
+        <p class="block-help margin-bottom-0">{{ __('This does not override manual assignments made by agents. For Workflows, use Workflows-first (defer) below.') }}</p>
     </div>
 </div>
 

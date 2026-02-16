@@ -97,6 +97,7 @@ class Assigner
                 // If mailbox default assignee pre-assigned the conversation and we are configured to override it,
                 // unassign now so Workflows (or other automation) can still do its job.
                 if ($wasDefaultAssigned) {
+                    $prevUserId = (int)$conversationFresh->user_id;
                     $oldFolderId = (int)$conversationFresh->folder_id;
                     $conversationFresh->setUser(-1);
                     $conversationFresh->save();
@@ -105,14 +106,21 @@ class Assigner
                     if ($oldFolderId && $oldFolderId !== $newFolderId) {
                         $oldFolder = Folder::find($oldFolderId);
                         if ($oldFolder) {
-                            $oldFolder->updateCounters();
+	                            // Force immediate refresh even if FreeScout is configured to
+	                            // update counters in background (queue worker might not be running).
+	                            $oldFolder->updateCountersNow();
                         }
                     }
                     if ($newFolderId) {
                         $newFolder = Folder::find($newFolderId);
                         if ($newFolder) {
-                            $newFolder->updateCounters();
+	                            $newFolder->updateCountersNow();
                         }
+                    }
+
+                    // Mine counters are computed by user_id (not by folder_id), so refresh them explicitly.
+                    if ($prevUserId > 0) {
+                        $this->updateMineFolderCountersNow($mailboxId, $prevUserId);
                     }
                 }
 
@@ -187,6 +195,7 @@ class Assigner
 
             // Assign using FreeScout helper so folder_id is updated correctly.
             $oldFolderId = (int)$conversationFresh->folder_id;
+            $prevUserId = (int)$conversationFresh->user_id;
             $conversationFresh->setUser((int)$selectedUserId);
             $conversationFresh->save();
 
@@ -195,15 +204,21 @@ class Assigner
             if ($oldFolderId && $oldFolderId !== $newFolderId) {
                 $oldFolder = Folder::find($oldFolderId);
                 if ($oldFolder) {
-                    $oldFolder->updateCounters();
+	                    $oldFolder->updateCountersNow();
                 }
             }
             if ($newFolderId) {
                 $newFolder = Folder::find($newFolderId);
                 if ($newFolder) {
-                    $newFolder->updateCounters();
+	                    $newFolder->updateCountersNow();
                 }
             }
+
+            // Mine counters are computed by user_id (not by folder_id), so refresh them explicitly.
+            if ($prevUserId > 0 && $prevUserId !== (int)$selectedUserId) {
+                $this->updateMineFolderCountersNow($mailboxId, $prevUserId);
+            }
+            $this->updateMineFolderCountersNow($mailboxId, (int)$selectedUserId);
 
             // Persist pointer.
             $meta['last_assigned_user_id'] = (int)$selectedUserId;
@@ -276,15 +291,18 @@ class Assigner
         if ($oldFolderId && $oldFolderId !== $newFolderId) {
             $oldFolder = Folder::find($oldFolderId);
             if ($oldFolder) {
-                $oldFolder->updateCounters();
+	                $oldFolder->updateCountersNow();
             }
         }
         if ($newFolderId) {
             $newFolder = Folder::find($newFolderId);
             if ($newFolder) {
-                $newFolder->updateCounters();
+	                $newFolder->updateCountersNow();
             }
         }
+
+        // Mine counters are computed by user_id (not by folder_id), so refresh them explicitly.
+        $this->updateMineFolderCountersNow((int)$mailbox->id, (int)$fallbackId);
 
         $this->audit($meta, (int)$mailbox->id, (int)$conversation->id, $fallbackId, 'assigned', 'fallback', $reason, [
             'source' => $context['source'] ?? 'event',
@@ -493,5 +511,31 @@ class Assigner
 
         // If tie, use round-robin within tied set.
         return $this->pickRoundRobin($best, $lastAssigned);
+    }
+
+    /**
+     * Force-refresh counters for the personal "Mine" folder.
+     *
+     * Important: Mine folder counters are computed by user_id/mailbox_id,
+     * not by conversations.folder_id. So if we assign a conversation,
+     * we must explicitly refresh Mine counters or the sidebar badge can stay stale
+     * until some other action triggers a full mailbox counters update.
+     */
+    protected function updateMineFolderCountersNow(int $mailboxId, int $userId): void
+    {
+        if ($mailboxId <= 0 || $userId <= 0) {
+            return;
+        }
+        try {
+            $mineFolder = Folder::where('mailbox_id', $mailboxId)
+                ->where('type', Folder::TYPE_MINE)
+                ->where('user_id', $userId)
+                ->first();
+            if ($mineFolder) {
+                $mineFolder->updateCountersNow();
+            }
+        } catch (\Throwable $e) {
+            // Ignore.
+        }
     }
 }
