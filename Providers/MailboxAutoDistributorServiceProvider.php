@@ -3,6 +3,7 @@
 namespace Modules\MailboxAutoDistributor\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\MailboxAutoDistributor\Services\Settings;
 
 if (!defined('MAILBOXAUTODISTRIBUTOR_MODULE')) {
     define('MAILBOXAUTODISTRIBUTOR_MODULE', 'mailboxautodistributor');
@@ -52,6 +53,27 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         }, 20, 3);
 
         \Eventy::addAction('conversation.created_by_customer', [$this, 'onConversationCreatedByCustomer'], 20, 3);
+
+        // Scheduler integration for deferred processing.
+        // FreeScout expects a system cron running `php artisan schedule:run`.
+        \Eventy::addFilter('schedule', function ($schedule) {
+            try {
+                $minutes = (int)config(MAILBOXAUTODISTRIBUTOR_MODULE.'.pending_process.every_minutes', 1);
+                $minutes = max(1, min(60, $minutes));
+                $limit = (int)config(MAILBOXAUTODISTRIBUTOR_MODULE.'.pending_process.limit', 50);
+                $limit = max(1, min(500, $limit));
+
+                $event = $schedule->command('mailboxautodistributor:process --limit='.$limit);
+                if ($minutes === 1) {
+                    $event->everyMinute();
+                } else {
+                    $event->cron('*/'.$minutes.' * * * *');
+                }
+            } catch (\Throwable $e) {
+                // Ignore.
+            }
+            return $schedule;
+        });
     }
 
     public function register()
@@ -59,6 +81,9 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../Config/config.php', MAILBOXAUTODISTRIBUTOR_MODULE);
 
         // Bind services.
+        $this->app->singleton(Settings::class, function () {
+            return new Settings();
+        });
         $this->app->singleton(\Modules\MailboxAutoDistributor\Services\Assigner::class, function () {
             return new \Modules\MailboxAutoDistributor\Services\Assigner();
         });
@@ -84,7 +109,9 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
             return;
         }
 
-        $meta = $mailbox->meta[MAILBOXAUTODISTRIBUTOR_MODULE] ?? [];
+        /** @var Settings $settings */
+        $settings = app(Settings::class);
+        $meta = $settings->forMailbox($mailbox);
 
         echo view(MAILBOXAUTODISTRIBUTOR_MODULE . '::partials/mailbox_settings', [
             'mailbox' => $mailbox,
@@ -139,6 +166,8 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
 
         $excludeTags = (string)$request->input('mad_exclude_tags', '');
 
+        $overrideDefaultAssignee = (bool)$request->input('mad_override_default_assignee');
+
         $fallbackUserId = (int)$request->input('mad_fallback_user_id', 0);
 
         $auditEnabled = (bool)$request->input('mad_audit_enabled');
@@ -172,6 +201,8 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $meta['exclude_tags'] = trim($excludeTags);
 
         $meta['fallback_user_id'] = $fallbackUserId > 0 ? $fallbackUserId : 0;
+
+        $meta['override_default_assignee'] = $overrideDefaultAssignee ? 1 : 0;
 
         $meta['audit_enabled'] = $auditEnabled ? 1 : 0;
 

@@ -9,6 +9,7 @@ use App\User;
 use Illuminate\Support\Facades\DB;
 use Modules\MailboxAutoDistributor\Models\AuditLog;
 use Modules\MailboxAutoDistributor\Models\PendingAssignment;
+use Modules\MailboxAutoDistributor\Services\Settings;
 
 class Assigner
 {
@@ -41,11 +42,6 @@ class Assigner
 
     protected function assignInternal(Conversation $conversation, bool $ignoreDefer, array $context = []): void
     {
-        // Only assign if unassigned.
-        if (!empty($conversation->user_id)) {
-            return;
-        }
-
         $mailboxId = (int)$conversation->mailbox_id;
         if (!$mailboxId) {
             return;
@@ -59,9 +55,30 @@ class Assigner
                 return;
             }
 
-            $meta = $mailbox->meta[MAILBOXAUTODISTRIBUTOR_MODULE] ?? [];
-            if (!is_array($meta) || empty($meta['enabled'])) {
+            /** @var Settings $settings */
+            $settings = app(Settings::class);
+            $meta = $settings->forMailbox($mailbox);
+            if (empty($meta['enabled'])) {
                 return;
+            }
+
+            // Determine whether we should treat the conversation as "assignable".
+            // Some mailbox settings auto-assign a default agent. When module is enabled,
+            // we can optionally override that default.
+            $conversationFresh = Conversation::where('id', $conversation->id)->lockForUpdate()->first();
+            if (!$conversationFresh) {
+                return;
+            }
+
+            $wasDefaultAssigned = false;
+            if (!empty($conversationFresh->user_id)) {
+                $shouldOverrideDefault = !empty($meta['override_default_assignee']);
+                $mailboxDefault = (int)($mailbox->ticket_assignee ?? 0);
+                if (!$shouldOverrideDefault || !$mailboxDefault || (int)$conversationFresh->user_id !== $mailboxDefault) {
+                    // Already assigned by something else (manual, workflow, etc.). Respect it.
+                    return;
+                }
+                $wasDefaultAssigned = true;
             }
 
             // Exclusions: skip if any excluded tag is present.
@@ -76,6 +93,28 @@ class Assigner
             if (!$ignoreDefer && !empty($meta['defer_enabled'])) {
                 $minutes = (int)($meta['defer_minutes'] ?? 5);
                 $minutes = max(1, min(60, $minutes));
+
+                // If mailbox default assignee pre-assigned the conversation and we are configured to override it,
+                // unassign now so Workflows (or other automation) can still do its job.
+                if ($wasDefaultAssigned) {
+                    $oldFolderId = (int)$conversationFresh->folder_id;
+                    $conversationFresh->setUser(-1);
+                    $conversationFresh->save();
+
+                    $newFolderId = (int)$conversationFresh->folder_id;
+                    if ($oldFolderId && $oldFolderId !== $newFolderId) {
+                        $oldFolder = Folder::find($oldFolderId);
+                        if ($oldFolder) {
+                            $oldFolder->updateCounters();
+                        }
+                    }
+                    if ($newFolderId) {
+                        $newFolder = Folder::find($newFolderId);
+                        if ($newFolder) {
+                            $newFolder->updateCounters();
+                        }
+                    }
+                }
 
                 $this->enqueueDeferred($meta, $mailboxId, (int)$conversation->id, $minutes);
 
@@ -144,11 +183,7 @@ class Assigner
                 return;
             }
 
-            // Assign.
-            $conversationFresh = Conversation::where('id', $conversation->id)->lockForUpdate()->first();
-            if (!$conversationFresh || !empty($conversationFresh->user_id)) {
-                return;
-            }
+            // Assign (conversationFresh already locked above).
 
             // Assign using FreeScout helper so folder_id is updated correctly.
             $oldFolderId = (int)$conversationFresh->folder_id;

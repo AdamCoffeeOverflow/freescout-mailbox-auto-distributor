@@ -22,6 +22,8 @@
 
     $fallback_user_id = (int)old('mad_fallback_user_id', $mad['fallback_user_id'] ?? 0);
 
+    $override_default_assignee = (int)old('mad_override_default_assignee', $mad['override_default_assignee'] ?? 1);
+
     $audit_enabled = (int)old('mad_audit_enabled', $mad['audit_enabled'] ?? 0);
 
     $mailbox_users = $mailbox->users()->orderBy('first_name')->orderBy('last_name')->get();
@@ -80,6 +82,28 @@
             </div>
         </fieldset>
         </div>
+    </div>
+</div>
+
+<hr>
+
+<div class="form-group">
+    <div class="col-sm-6 col-sm-offset-2">
+        <h4 class="margin-top-10 margin-bottom-5">{{ __('Mailbox defaults') }}</h4>
+        <p class="block-help margin-top-0 margin-bottom-0">{{ __('If the mailbox has a default assignee set, it may assign tickets before this module runs. Enable the option below to override that default with the pool distribution.') }}</p>
+    </div>
+</div>
+
+<div class="form-group">
+    <label class="col-sm-2 control-label">{{ __('Override default assignee') }}</label>
+    <div class="col-sm-6">
+        <div class="controls">
+            <label class="checkbox inline plain" style="padding-left:0;">
+                <input type="checkbox" name="mad_override_default_assignee" value="1" @if($override_default_assignee) checked="checked" @endif>
+                <span>{{ __('Override mailbox default assignee when module is enabled') }}</span>
+            </label>
+        </div>
+        <p class="block-help margin-bottom-0">{{ __('This does not override manual assignments made by agents. For Workflows, use Workflows-first (defer) above.') }}</p>
     </div>
 </div>
 

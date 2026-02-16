@@ -38,7 +38,8 @@ If a user cannot update mailbox settings, they will not see or be able to change
 ## Behavior
 
 - Runs on **incoming customer-created conversations**.
-- Assigns only if the conversation is **unassigned**.
+- By default, assigns only if the conversation is **unassigned**.
+- If the mailbox has a **default assignee** configured, enable **Override default assignee** in the module settings to let the pool assignment take precedence.
 - Does not change tags/statuses/threads.
 
 ## Notes
@@ -61,7 +62,17 @@ How it works:
 
 ### Cron (recommended)
 
-Add this to your server cron (every minute is typical):
+This module integrates with Laravel Scheduler via FreeScout's `schedule` hook.
+
+If your server already runs FreeScout's scheduler (recommended):
+
+```bash
+* * * * * php /path/to/freescout/artisan schedule:run >> /dev/null 2>&1
+```
+
+…then deferred assignments are processed automatically.
+
+If you prefer a dedicated cron (also works):
 
 ```bash
 php artisan mailboxautodistributor:process
