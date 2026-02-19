@@ -1,4 +1,4 @@
-Ticket Aging Colors (MailboxAutoDistributor) — FreeScout Module
+Mailbox Auto Distributor Module (MailboxAutoDistributor) — FreeScout Module
 Copyright (C) 2026 AdamCoffeeOverflow
 
 License: AGPL-3.0-only
