@@ -1,6 +1,14 @@
 <img width="300" height="300" alt="icon" src="https://github.com/user-attachments/assets/8672d8bc-2038-41a2-b7a6-e494c43cd452" />
 
 
+Author: AdamCoffeeOverflow
+
+<a href="https://www.buymeacoffee.com/zrhfqt992nt" target="_blank" rel="noopener noreferrer">
+  <img
+    src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20coffee!&emoji=%E2%98%95&slug=zrhfqt992nt&button_colour=FF5F5F&font_colour=ffffff&font_family=Inter&outline_colour=000000&coffee_colour=FFDD00"
+    alt="Buy me a coffee"
+  />
+</a>
 
 # freescout-mailbox-auto-distributor
 Automatically assigns new incoming customer conversations in a mailbox to a selected agent pool
