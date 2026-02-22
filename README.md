@@ -1,4 +1,4 @@
-<img width="300" height="300" alt="icon" src="https://github.com/user-attachments/assets/8672d8bc-2038-41a2-b7a6-e494c43cd452" />
+<img width="250" height="250" alt="icon" src="https://github.com/user-attachments/assets/8672d8bc-2038-41a2-b7a6-e494c43cd452" />
 
 
 Author: AdamCoffeeOverflow
