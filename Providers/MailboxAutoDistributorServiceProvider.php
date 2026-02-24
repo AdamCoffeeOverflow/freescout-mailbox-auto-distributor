@@ -227,6 +227,24 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
      */
     public function onConversationCreatedByCustomer($conversation, $thread = null, $customer = null)
     {
+        static $handledConversationIds = [];
+
+        $conversationKey = null;
+        if (is_object($conversation) && isset($conversation->id) && (int)$conversation->id > 0) {
+            $conversationKey = 'id:' . (int)$conversation->id;
+        } elseif (is_array($conversation) && !empty($conversation['id'])) {
+            $conversationKey = 'id:' . (int)$conversation['id'];
+        } elseif (is_object($conversation)) {
+            $conversationKey = 'obj:' . spl_object_hash($conversation);
+        }
+
+        if ($conversationKey !== null) {
+            if (isset($handledConversationIds[$conversationKey])) {
+                return;
+            }
+            $handledConversationIds[$conversationKey] = true;
+        }
+
         // Optional "web fallback" processing for deferred assignments (for installs without cron).
         try {
             $mailbox = \App\Mailbox::find((int)$conversation->mailbox_id);
