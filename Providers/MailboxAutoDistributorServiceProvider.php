@@ -214,6 +214,17 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         $mailbox->setMetaParam(MAILBOXAUTODISTRIBUTOR_MODULE, $meta);
     }
 
+    /**
+     * Triggers mailbox-scoped deferred-assignment processing when enabled and attempts automatic assignment for the conversation.
+     *
+     * If the mailbox's auto-distributor settings have defer and web fallback enabled, this will initiate a mailbox-scoped web-fallback run
+     * (rate-limited to once per 60 seconds) that processes up to 20 pending assignments, then invokes the assigner to assign the provided conversation
+     * if auto-assignment is enabled for that mailbox.
+     *
+     * @param mixed $conversation The conversation model created by a customer.
+     * @param mixed|null $thread Optional thread model associated with the conversation.
+     * @param mixed|null $customer Optional customer model who created the conversation.
+     */
     public function onConversationCreatedByCustomer($conversation, $thread = null, $customer = null)
     {
         // Optional "web fallback" processing for deferred assignments (for installs without cron).
@@ -222,7 +233,8 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
             if ($mailbox) {
                 $meta = $mailbox->meta[MAILBOXAUTODISTRIBUTOR_MODULE] ?? [];
                 if (is_array($meta) && !empty($meta['defer_enabled']) && !empty($meta['web_fallback'])) {
-                    $key = 'mad_web_fallback_process';
+                    $mailboxId = (int)$mailbox->id;
+                    $key = 'mad_web_fallback_process_'.$mailboxId;
                     if (\Cache::add($key, 1, 60)) {
                         /** @var \Modules\MailboxAutoDistributor\Services\PendingProcessor $processor */
                         $processor = app(\Modules\MailboxAutoDistributor\Services\PendingProcessor::class);
