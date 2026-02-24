@@ -222,7 +222,8 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
             if ($mailbox) {
                 $meta = $mailbox->meta[MAILBOXAUTODISTRIBUTOR_MODULE] ?? [];
                 if (is_array($meta) && !empty($meta['defer_enabled']) && !empty($meta['web_fallback'])) {
-                    $key = 'mad_web_fallback_process';
+                    $mailboxId = (int)$mailbox->id;
+                    $key = 'mad_web_fallback_process_'.$mailboxId;
                     if (\Cache::add($key, 1, 60)) {
                         /** @var \Modules\MailboxAutoDistributor\Services\PendingProcessor $processor */
                         $processor = app(\Modules\MailboxAutoDistributor\Services\PendingProcessor::class);
