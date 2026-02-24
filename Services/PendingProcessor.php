@@ -16,7 +16,7 @@ class PendingProcessor
     }
 
     /**
-     * Process due pending assignments. Returns number processed (assigned or skipped/failed).
+     * Process due pending assignments. Returns number transitioned to terminal states.
      */
     public function processDue(int $limit = 50): int
     {
@@ -33,9 +33,7 @@ class PendingProcessor
         $processed = 0;
 
         foreach ($items as $item) {
-            $processed++;
-
-            DB::transaction(function () use ($item) {
+            DB::transaction(function () use ($item, &$processed) {
                 $locked = PendingAssignment::where('id', $item->id)->lockForUpdate()->first();
                 if (!$locked || $locked->status !== 'pending') {
                     return;
@@ -47,6 +45,7 @@ class PendingProcessor
                     $locked->reason = 'Conversation not found';
                     $locked->processed_at = now();
                     $locked->save();
+                    $processed++;
                     return;
                 }
 
@@ -55,6 +54,7 @@ class PendingProcessor
                     $locked->reason = 'Already assigned';
                     $locked->processed_at = now();
                     $locked->save();
+                    $processed++;
                     return;
                 }
 
@@ -74,6 +74,7 @@ class PendingProcessor
                 }
                 $locked->processed_at = now();
                 $locked->save();
+                $processed++;
             }, 3);
         }
 
