@@ -47,12 +47,12 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
         // FreeScout triggers both a filter and an action for this hook.
         // We hook into both for maximum compatibility across versions and to ensure
         // assignment happens before folder counters are updated when possible.
-        \Eventy::addFilter('conversation.created_by_customer', function ($conversation, $thread = null, $customer = null) {
-            $this->onConversationCreatedByCustomer($conversation, $thread, $customer);
+        \Eventy::addFilter('conversation.created_by_customer', function ($conversation) {
+            $this->onConversationCreatedByCustomer($conversation);
             return $conversation;
-        }, 20, 3);
+        }, 20, 1);
 
-        \Eventy::addAction('conversation.created_by_customer', [$this, 'onConversationCreatedByCustomer'], 20, 3);
+        \Eventy::addAction('conversation.created_by_customer', [$this, 'onConversationCreatedByCustomer'], 20, 1);
 
         // Scheduler integration for deferred processing.
         // FreeScout expects a system cron running `php artisan schedule:run`.
@@ -222,10 +222,8 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
      * if auto-assignment is enabled for that mailbox.
      *
      * @param mixed $conversation The conversation model created by a customer.
-     * @param mixed|null $thread Optional thread model associated with the conversation.
-     * @param mixed|null $customer Optional customer model who created the conversation.
      */
-    public function onConversationCreatedByCustomer($conversation, $thread = null, $customer = null)
+    public function onConversationCreatedByCustomer($conversation)
     {
         static $handledConversationIds = [];
 
