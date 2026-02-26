@@ -9,7 +9,6 @@ use App\User;
 use Illuminate\Support\Facades\DB;
 use Modules\MailboxAutoDistributor\Models\AuditLog;
 use Modules\MailboxAutoDistributor\Models\PendingAssignment;
-use Modules\MailboxAutoDistributor\Services\Settings;
 
 class Assigner
 {
@@ -327,7 +326,7 @@ class Assigner
         if (method_exists($conversation, 'tags')) {
             try {
                 $tags = $conversation->tags()->pluck('name')->toArray();
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 // ignore
             }
         }
@@ -437,7 +436,7 @@ class Assigner
             if ($ids) {
                 AuditLog::whereIn('id', $ids)->delete();
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Never break ticket creation due to logging.
         }
     }
@@ -534,7 +533,7 @@ class Assigner
             if ($mineFolder) {
                 $mineFolder->updateCountersNow();
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Ignore.
         }
     }

@@ -30,7 +30,7 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
                 if (\Request::is('mailboxes/*')) {
                     $javascripts[] = \Module::getPublicPath(MAILBOXAUTODISTRIBUTOR_MODULE) . '/js/mad.js';
                 }
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 // Ignore.
             }
             return $javascripts;
@@ -69,7 +69,7 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
                 } else {
                     $event->cron('*/'.$minutes.' * * * *');
                 }
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 // Ignore.
             }
             return $schedule;
@@ -260,7 +260,7 @@ class MailboxAutoDistributorServiceProvider extends ServiceProvider
                     }
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Ignore.
         }
 
