@@ -1,0 +1,11 @@
+# Normalize line endings
+* text=auto
+
+# Treat these as text
+*.php text
+*.blade.php text
+*.js text
+*.css text
+*.json text
+*.md text
+*.txt text

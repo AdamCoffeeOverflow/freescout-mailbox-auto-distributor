@@ -1,0 +1,16 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Archives / build output
+*.zip
+*.tar.gz
+
+# Logs
+*.log
