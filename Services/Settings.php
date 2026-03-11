@@ -36,7 +36,7 @@ class Settings
             $users = [];
         }
         $users = array_values(array_unique(array_map('intval', $users)));
-        $users = array_values(array_filter($users, fn ($id) => $id > 0));
+        $users = array_values(array_filter($users, function ($id) { return $id > 0; }));
         $s['users'] = $users;
 
         $s['defer_enabled'] = !empty($s['defer_enabled']) ? 1 : 0;

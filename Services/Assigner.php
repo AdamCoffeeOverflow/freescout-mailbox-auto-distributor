@@ -142,7 +142,7 @@ class Assigner
 
             // Ensure users are valid, active, and have mailbox access.
             $eligible = array_values(array_unique(array_map('intval', $eligible)));
-            $eligible = array_filter($eligible, fn($id) => $id > 0);
+            $eligible = array_filter($eligible, function ($id) { return $id > 0; });
             if (!$eligible) {
                 $this->tryFallback($mailbox, $meta, $conversation, $context, 'No valid users in pool');
                 return;
@@ -155,7 +155,7 @@ class Assigner
                 return;
             }
 
-            $activeUsers = User::whereIn('id', $eligible)->get()->filter(fn($u) => $u->isActive())->pluck('id')->toArray();
+            $activeUsers = User::whereIn('id', $eligible)->get()->filter(function ($u) { return $u->isActive(); })->pluck('id')->toArray();
             $eligible = array_values(array_intersect($eligible, $activeUsers));
             if (!$eligible) {
                 $this->tryFallback($mailbox, $meta, $conversation, $context, 'Pool users inactive');
@@ -316,7 +316,7 @@ class Assigner
             return false;
         }
 
-        $excludeList = array_filter(array_map(fn($t) => mb_strtolower(trim($t)), preg_split('/[,\n]+/', $exclude)));
+        $excludeList = array_filter(array_map(function ($t) { return mb_strtolower(trim($t)); }, preg_split('/[,\n]+/', $exclude)));
         if (!$excludeList) {
             return false;
         }
@@ -338,7 +338,7 @@ class Assigner
             $tags = $conversation->meta['tags'];
         }
 
-        $tags = array_map(fn($t) => mb_strtolower(trim((string)$t)), $tags);
+        $tags = array_map(function ($t) { return mb_strtolower(trim((string)$t)); }, $tags);
         foreach ($tags as $tag) {
             if ($tag !== '' && in_array($tag, $excludeList, true)) {
                 return true;

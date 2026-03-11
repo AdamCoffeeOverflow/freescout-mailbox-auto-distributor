@@ -8,7 +8,8 @@ use Modules\MailboxAutoDistributor\Models\PendingAssignment;
 
 class PendingProcessor
 {
-    protected Assigner $assigner;
+    /** @var Assigner */
+    protected $assigner;
 
     public function __construct(Assigner $assigner)
     {
@@ -109,7 +110,7 @@ class PendingProcessor
         return [
             'mode' => isset($snapshot['mode']) ? (string)$snapshot['mode'] : null,
             'users' => isset($snapshot['users']) && is_array($snapshot['users'])
-                ? array_values(array_filter(array_map('intval', $snapshot['users']), fn ($id) => $id > 0))
+                ? array_values(array_filter(array_map('intval', $snapshot['users']), function ($id) { return $id > 0; }))
                 : [],
         ];
     }
