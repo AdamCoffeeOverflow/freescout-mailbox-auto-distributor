@@ -18,11 +18,13 @@ Automatically assigns new incoming customer conversations in a mailbox to a sele
 - **Round-robin (rotate)**
 - **Least open (even by workload)** — assigns to the agent with the fewest **Active + Pending** conversations in the same mailbox.
 
-## Installation
-
-1. Download the module ZIP.
-2. In FreeScout: **Manage → Modules → Upload Module**.
-3. Activate **Mailbox Auto-Distributor**.
+## Install
+1. Download the **Release** Version for easy install (Do not download via **<> Code link**)
+2. Copy the module folder into your FreeScout instance:
+   - `Modules/MailboxAutoDistributor`
+3. Activate it in **Manage → Modules**.
+4. (Optional) clear caches:
+   - `php artisan cache:clear`
 
 ## Configuration (per mailbox)
 
